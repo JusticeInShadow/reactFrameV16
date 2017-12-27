@@ -1,0 +1,7 @@
+.idea
+/logs
+/test
+/product
+**/.settings
+**/.project
+node_modules/
