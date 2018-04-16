@@ -20,6 +20,18 @@ const pathToReactDOM = path.resolve(pathNodeModules, 'react-dom/index.js');
 console.log("本次执行的动作是：全局打包");
 console.log(`本次编译环境是: ${node_env}`);
 console.log("path"+distPath);
+
+//判断是否是开发环境
+const isNotDev = ()=>{
+    return node_env != "develop"
+};
+
+// 删除文件
+function delFiles() {
+    console.log("执行：清空原文件");
+    del([distPath+"/**/*"],{force:true})
+}
+
 let projects = [
     {
         name:"index",
@@ -30,6 +42,9 @@ const entry = function() {
     for(let i in projects){
         let project = projects[i].name;
         entryObj[project] = resolve(__dirname, 'src/js/pages/'+project+'.js');
+        if(!isNotDev()) {
+            entryObj[project]=[entryObj[project],...['webpack/hot/only-dev-server',"webpack-hot-middleware/client?noInfo=true&reload=true"]]
+        }
     }
     return entryObj
 };
@@ -63,7 +78,8 @@ const plugins = () => {
         new webpack.DllReferencePlugin({
             context:resolve(__dirname, distPath,"js"),
             manifest:resolve(__dirname, distPath,"js","manifest.json")
-        })
+        }),
+        new webpack.HotModuleReplacementPlugin()
     ], testPlugins = [
         new ExtractTextPlugin('css/[name]_[hash:8].css'),
     ], prodPlugins = [
@@ -122,9 +138,12 @@ const modules = () => ({
                     loader: 'babel-loader',
                     options: {
                         babelrc: true,
-                        presets: ['react', 'es2015'],
+                        presets: ['react', 'es2015', "stage-0"],
                         plugins: [
-                            ["import", { "libraryName": "antd", "style": "css" }] // `style: true` 会加载 less 文件
+                            ["import", { "libraryName": "antd", "style": "css" }], // `style: true` 会加载 less 文件
+                            'transform-runtime',
+                            'syntax-async-functions',
+                            'syntax-decorators'
                         ]
                     }
                 }
@@ -162,15 +181,6 @@ const resolveModules = ()=>({                                    //解析
     }
 });
 
-// 删除文件
-function delFiles() {
-    console.log("执行：清空原文件");
-    del([distPath+"/**/*"],{force:true})
-}
-
-const isNotDev = ()=>{
-    return node_env != "develop"
-};
 if (isNotDev()){
     delFiles();
 }

@@ -46,8 +46,8 @@ var conditional = require('koa-conditional-get');
 var etag = require('koa-etag');
 
 //数据查询缓存    session储存，提升请求的性能
-var session = require("koa-session2");
-var Store = require("./lib/store/Store");
+// var session = require("koa-session2");
+// var Store = require("./lib/store/Store");
 
 //支持对请求的response进行压缩
 var compress = require('koa-compress');
@@ -148,13 +148,56 @@ let redirectFilter = function () {
     }
 };
 
+//开发环境启用 webpack 热更新
+if(NODE_ENV == "develop"){
+    const webpack = require("webpack");
+    const webpackConfig = require("./webpack.config");
+    const webpackDev  = require('webpack-dev-middleware');
+    const webpackHot = require('webpack-hot-middleware');
+    // koa2支持的中间件webpack-dev-middleware的实现
+    const devMiddleware = (compiler, opts) => {
+        const middleware = webpackDev(compiler, opts)
+        return async (ctx, next) => {
+            await middleware(ctx.req, {
+                end: (content) => {
+                    ctx.body = content
+                },
+                setHeader: (name, value) => {
+                    ctx.set(name, value)
+                }
+            }, next)
+        }
+    };
+
+    //koa2支持的中间件webpack-hot-middleware的实现
+    const PassThrough = require('stream').PassThrough;
+    const hotMiddleware = (compiler, opts) => {
+        const middleware = webpackHot(compiler, opts);
+        return async (ctx, next) => {
+            let stream = new PassThrough();
+            ctx.body = stream;
+            await middleware(ctx.req, {
+                write: stream.write.bind(stream),
+                writeHead: (status, headers) => {
+                    ctx.status = status;
+                    ctx.set(headers)
+                }
+            }, next)
+        }
+
+    };
+
+    //最终添加热启动事件
+    const compiler = webpack(webpackConfig);
+    app.use(devMiddleware(compiler));
+    app.use(hotMiddleware(compiler));
+}
+
 //中间件排队
 if (NODE_ENV == 'product') {
     app.use(httpsFilter());//正式环境启用http转https
 }
-app.use(loginFilter()).use(session({
-    store:new Store()
-})).use(compress({
+app.use(loginFilter()).use(compress({
     threshold: 2048       //要压缩的最小响应字节
 })).use(bodyParse({
     jsonLimit:'10mb'

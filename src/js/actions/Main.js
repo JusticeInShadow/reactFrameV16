@@ -5,14 +5,12 @@
  *
  * Created by peng.xue on 2017/12/26.
  */
-import {
-    NEW_FRAME
-} from '../constants/ActionConstant';
+import TYPE from '../constants/ActionConstant';
 
 export const changeWords = (data) =>{
     return (dispatch) => {
         dispatch({
-            type: NEW_FRAME,
+            type: TYPE.NEW_FRAME,
             data: data
         });
     }
