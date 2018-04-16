@@ -31,7 +31,6 @@ render((
             <Main>
                 <Route exact path="/" component={ChildOne}/>
             </Main>
-
         </Router>
     </Provider>
 ), document.getElementById("wrap")
